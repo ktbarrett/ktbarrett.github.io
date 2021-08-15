@@ -41,8 +41,9 @@ Another problem, is that `goto` allows a program to jump lexically *up* the sour
 Yet another problem has to do with code scalability. Breaking sections of code into multiple subroutines helps code scalability by allowing a programmer to encapsulate sections of their code base into subroutines to reduce the necessary working memory required for them to reason about their program.
 
 Subroutines also greatly improve reuse. Common code can be written once and run many times from many different contexts.
+Fortunately, ISA designers clued into this early only, and it never really was debated.
 
-When the programmer only has `goto`, compartmentalization, encapsulation, and reuse of sections of code is nearly impossible.
+When the programmer only has `goto`, compartmentalization, encapsulation, and reuse is nearly impossible.
 
 ### What Are Subprograms?
 
@@ -87,6 +88,46 @@ Yes and no... They are like subprograms in that they are named, must have variab
 ### Concept Declarations
 
 * concepts are boolean metafunctions that returns true if a type implements the concept
+
+## Syntax For Blocks
+
+There are a few different syntaxes for Block-delination in modern programming languages.
+Sometimes languages have equivalent syntax, but the exact spelling is a bit different.
+Lets look at a few languages/family of languages:
+
+### Python
+
+Python (and a few other less popular languages) use significant indentation to represent new blocks.
+In Python, blocks are only ever accompanied by block operators.
+
+An advantage is that blocks are very clear to visualize and there is less syntactic "noise" by removing the need to end the block explicitly.
+A clear disadvantage with the way Python does this is it makes using blocks in expressions impossible.
+This is clearly acknowledged by the fact that Python has a separate syntax for anonymous functions and they are single expression only.
+This is *necessary* to decide when the end of the function defintions occurs and the rest of the arguments start.
+
+### The C and Pascal Family
+
+This includes C, C++, Java, C#, Javascript, Rust, Pascal, and so many more languages.
+In C-like languages, blocks are usually started with the right-facing curly bracket `{` and end with the left-facing curly bracket `}`.
+Pascal is very similar, but the block beginning and end are call `begin` and `end`, respectively.
+Most of the languages in these family support creating blocks arbitrary, and not just in conjunction with some other syntactic element.
+
+The benefit of this syntax is that it is unambiguous when the block has ended.
+This is important if blocks are to be used in greater expressions.
+For example, in C++, one can write multi-line lambda functions *inline* with the expression in which they are to be used (such as being passed to a map, filter, or reduce algorithm).
+The clear block end is important to distinguish between the end of the lambda body and the rest of the expression.
+
+### The Ada Variation
+
+Ada uses the C/Pascal idiom of clear block beginning and end syntax.
+*However*, blocks cannot be created arbitrarily, but must be associated with a block operator.
+This is because Ada allows you to optionally specify which block operator and/or the name of the labeled block you are leaving when the `end` keyword is seen.
+It is an improvement upon regular C syntax, where the end of a block occurs when a closing bracket is seen "at the same level".
+
+Matching "stupidly" like C does can lead to poor lex error messages when there is a mismatching number of closing brackets.
+The lexer cannot decide which block is responsible for the missing bracket.
+This leads to the error typically being reported at the end of the file where the final closing brackets were not seen.
+In Ada, if the lexer sees `end procedure` when it was expecting `end if`, it can immediately error.
 
 [^1]: C. Böhm and G. Jacopini. Flow diagrams, Turing machines and languages with only two formation rules. Communications of the ACM, pages 366–371, May 1966.
 
