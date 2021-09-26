@@ -3,132 +3,381 @@ layout: post
 title: Exploring Structured Programming
 ---
 
-## What is Structured Programming?
+Structured programming is programming with well-defined constructs to control the flow of execution in a program.
+As opposed to "less-principled" language constructs, like what is seen in assembly languages with arbitrary jumps.
 
-Programming with well-defined constructs to control the flow of execution in a program. A paper[^1] long ago proved that there are three structures which can be used to implement any computation.
+## The Bare Minimum
+
+A paper[^1] long ago proved that there are three structures which can be used to implement any computation.
 * sequencing: do this, then do that
 * selection: if some condition is true, do this; otherwise, do that
 * iteration: while some condition is true, repeat this
 
-These correspond to the ideas of statements, `if`-`else`, and `while` loops in many modern languages. While the paper proved they were "sufficient"[^2] they aren't necessarily ergonomic.
+These correspond to the concepts of statements, `if`-`else`, and `while` loops in most imperative languages.
+While the paper proved they were "sufficient"[^2], they aren't necessarily ergonomic.
+In addition to the immense amount of focus on flow control constructs,
+structured programming also focused on a few other constructs: code "blocks", subroutines, and functions.
 
-In addition to the immense amount of focus on flow control constructs, there was also a focus on a few other constructs: code "blocks", subroutines, and functions.
+Lets break down these elements of structured programming and see what we can learn...
 
-### What About Blocks?
+## Blocks
 
-Also important to the concept of structured programming is the concept of "blocks". Blocks are a sequence of instructions that are grouped which appear to behave as a single statement. This most importantly implies that any variables declared in the block cease to exist by the time the statement following the block is run.
+Blocks are a sequence of statements that act as a single arbitrarily-complex statement.
+The implication of this is that variables that are defined in a block must be cleaned up after the last statement in the block is run.
+Blocks can be arbitrarily nested.
+Variables defined in a block are available to nested block definitions.
 
-Blocks also serve another purpose with regards to the limited `goto` statements: `break` and `continue`; supported by many modern programming languages. Many people understand that `break` exits the loop, and `continue` starts the loop back from the top; but I think this is a flawed understanding. Instead `break` and `continue` work as early exits of the blocks in which they reside.
+```C++
+int a = 0;
+{
+    int b = a;  // can use variable a here
+}
+// b is cleaned up by now
+```
 
-Consider the case where a loop construct iterates over only a single statement. For example, C and C++ support this idiom. `continue` and `break` are statements, and if they were the only statement in the loop, the code would be nonsense. However, as soon as you add a block, their use becomes apparent.
+## Loops, break, and continue
 
-In C, C++ and most other languages that support the limited `goto` statements: `break` and `continue`; these constructs only work in the context of loops. `break` can be located in many nested blocks, but it will break out of the nearest loop's block. `continue` is similar in that it also breaks out of the nearest loop's block, but then continues the loop.
+A loop body, in the common case, is a block.
+The loop runs the block, and once the block finishes, the loop restarts.
+Because the body is a block, when the loop ends, variables defined in the loop body are cleaned up, to be recreated on the next loop iteration.
+You may also want to end the end the loop before the loop condition is checked again:
+the `break` and `continue` statements allow you to break out of the current block early.
+With labeled breaks (or a similar feature) multiple loop blocks can be exited at once.
 
-While `continue` makes little sense outside of the context of looping, becuase it is a limited form of goto that jumps lexically *up* the source code; `break` potentially has additional use in jumping out of *any* block in context, lexically down the source code. Another example of this is the use of `break` in `switch` statements in C, C++, and others. It is an early exit out of the current block.
+```C++
+int i = 0;
+while (i < 10) {
+    int a = i * 2;  // a is created and destroyed on each iteration
+    i++;
+}
 
-Some languages, e.g. Java, support labeled `break`s to allow for breaking out of multiple nested loops. This is an example of the use of `break` to exit one, or some other block in the current context. And as we will see later, `return` is a form of break. However, `return`, like `break` only works in certain contexts. This is ostensibly by design, to yield the "structured" part of "structure programming".
+while (1) {
+    int c = next(lexer);
+    if (c == ' ') {
+        continue;   // breaks out of block and restarts loop, c is destroyed and recreated
+    }
+    else if (c == EOF) {
+        break;     // break out of block and ends loop, c is destroyed
+    }
+    // ...
+}
+```
 
-Are these structuring limitation useful, or simply academic wankery? Are the common selection of constructs too structured, or not structured enough?
+## Subroutines
 
-### Why are `break` and `continue` safe, but `goto` is harmful?
+Subroutines are a named block.
+Control can enter a subroutine from any context by calling the subroutine.
+Once the subroutine ends, control will go to the next statement in the caller's block.
+Because they can be called from any context, subroutines cannot make *any* assumptions about the caller's environment.
+Variables in the callers scope are not immediately available in the function block,
+so they must be explicitly passed as arguments.
+You can exit the subroutine early using a `return` statement.
+However, since the caller's context isn't known to the subroutine,
+it can't cause an early exit past the call point (e.g. can't do a multi-level `return`).
 
-Unlike the `goto` statement, which allows jumping (depending upon the language) *anywhere* in the program, `break` and `continue` only allow jumping to just after the end of the block, or just before the start of the block, respectively. In both cases, the context they are used in *has ended*, an all block-local variables have been cleaned up. This is very important distinction.
+```C++
+// caller
+int b = 10;
+print_stuff(b);
 
-The primary safety issue when using `goto` to jump arbitrarily through a program is jumping over or through variable declarations. The program may accidentally end up in a place where it is operating on variables that were never initialized, or are simply aliasing whatever is in the stack with new variables.
+void print_stuff(int a)
+{
+    // b is not available, must pass explicitly as argument a
+    printf("%d\n", a);
+    if (cond()) {
+        return;  // early return
+    }
+    printf("cond() is false");
+    // implicit return
+}
+```
 
-Another problem, is that `goto` allows a program to jump lexically *up* the source code, creating implicit loops without it being obvious which variables are controlling the looping.
+## Function
 
-Yet another problem has to do with code scalability. Breaking sections of code into multiple subroutines helps code scalability by allowing a programmer to encapsulate sections of their code base into subroutines to reduce the necessary working memory required for them to reason about their program.
+Functions are like subroutines: they are named blocks callable from any context.
+However, unlike subroutines or blocks, they aren't acting like a statement, but an expression.
+Functions return values that are used in place of the call site in the caller's expression context.
+This is extremely useful for describing arbitrarily-complex expressions.
+Like in subroutines, `return` can be used to exit the function early.
+Unlike in subroutines, `return` is required in all living code paths.
 
-Subroutines also greatly improve reuse. Common code can be written once and run many times from many different contexts.
-Fortunately, ISA designers clued into this early only, and it never really was debated.
+```C++
+// caller
+int b = 10;
+int c = digit_sum(b) + 78;  // used in larger expression
 
-When the programmer only has `goto`, compartmentalization, encapsulation, and reuse is nearly impossible.
+int digit_sum(int c)
+{
+    int sum = 0;
+    while (c > 0) {
+        sum += c % 10;
+        c /= 10;
+    }
+    return sum;  // return of a value is required
+}
+```
 
-### What Are Subprograms?
+## Some Observations
 
-Subprograms are named reusable blocks that must have pertinent variables passed to them explicitly, because they can assume nothing of their caller's context. Similar to blocks, subprograms can be exited early; however, breaking out of further blocks is not possible due to the lack of knowledge of the caller's context.
+1. Can use `break` to jump out of loops early, or even multiple nested loops.
+    Can use `return` to jump out of subroutines early.
+    Can't jump out of arbitrary blocks early?
+2. Can use functions to create named, reusable, arbitarily-complex expressions.
+    Can't directly use a block in an expression, must split it off into a function?
 
-***TODO***
+Point 1 has come up many times as a justification for leaving `goto` in a language even though *`goto` is evil*.
+And point 2 has come up many times in the form of defining an anonymous function and calling it immediately,
+which you see again and again in C++11 and newer code bases. Yet I have never heard anyone complain about it.
 
-### Are Functions Subprograms?
+## Goto is Evil
 
-Yes and no... They are like subprograms in that they are named, must have variables passed to them, and can make no assumptions about the caller's context. However, function calls are *not* like blocks... Function calls can yield a value. That yielded value is then used in place of the function call in the *expression* where the function call occured.
+The primary safety issue when using `goto` to jump arbitrarily through a program is jumping over or through variable declarations.
+The program may accidentally end up in a place where it is operating on variables that were never initialized, or are simply aliasing whatever is in the stack with new variables.
+You can certainly work around these issues by disallowing jumps over variable declaration,
+but that has a second-order effect of programmers pushing their variable declarations up to the top of the (sub)program to avoid the problem.
+Now they are choosing mutable, uninitialized (or arbitrarily initialized if uninitialized variables are not permissible) variables where they otherwise wouldn't.
 
-***TODO***
+Another problem, is that `goto` allows a program to jump lexically *up* the source code,
+creating implicit loops without it being obvious which variables are controlling the looping.
+Making it hard to reason about the current state of the program without considering many, potentially unknown, variables.
+This seems to be the primary focus of Djikstra's article *Go To Statement Considered Harmful* [^3].
 
-## Missing Features
+Yet another problem has to do with code scalability.
+Breaking sections of code into multiple subroutines helps code scalability by allowing a programmer to encapsulate sections of their code base into subroutines to reduce the necessary working memory required for them to reason about their program.
+Subroutines also greatly improve reuse.
+Common code can be written once and run many times from many different contexts.
+Fortunately, ISA designers clued into this early only, and it never really was debated as valuable.
 
-### Exiting Arbitrary Labeled Blocks
+When the programmer only has `goto`, as in assembly; compartmentalization, encapsulation, and reuse is extremely difficult without extreme principle.
 
-### Using Blocks in Expressions
+## Breaks as a Limited Goto
 
-* can sort-of be done with anonymous functions, but syntax isn't great
+Expanding on the observation from earlier that you can `break` out of loops, `break` out of nested loops, and `return` early from subroutines, but can't break out of anything else:
+we could expand `break` to work on any block, allowing it to act as a form of limited `goto`.
+`break` only allows jumping to just after the end of a block.
+Meaning any block-local variables in scopes that have been broken out of have been cleaned up.
+`break` also can only jump *down* the source code, making it as easy to reason about as loop `break`s or early `return`s in subroutines.
+There is no way to create implied loops with `break`.
+This makes `break` far safer than `goto`,
+while being capable enough to cover most *valid* use cases.
 
-## Block Operators
+To prove my point, lets dive into examples of *valid* uses of `goto` from a [StackOverflow question on that subject](https://stackoverflow.com/questions/24451/is-it-ever-advantageous-to-use-goto-in-a-language-that-supports-loops-and-func/24476#24476) and rewrite them with labeled `break`s on arbitrary blocks.
 
-* many programming languages constructs can be modeled as AST-level metafunctions on blocks
+### Multi-level Loop Breaks
 
-### Flow Control Constructs
+Sadly, C and C++ support labels, but do not support labeled `break`s allowing to programmer to break out of multiple levels of loops at once.
+In this case, `goto` is used to act as a multi-level `break`. Obviously this is not a good reason to keep `goto` around... C and C++ could at any point add support for labeled `break` and remove the largest reason for `goto` appearing in C and C++ programs.
 
-* `break` and `continue` are just "exit block" statements with a boolean for ending the loop or not
+```C++
+// search for first occurence of value in row-major 2D array
+int found_row, found_col;
+for (int row = 0; row < 10; row++) {
+    for (int col = 0; col< 10; col++) {
+        if (array[row][col] == value) {
+            found_row = row;
+            found_col = col;
+            goto found;
+        }
+    }
+}
+int c = 0;  // WHOOPS... need a variable here, jumped over variable declaration
+found:
+...  // this only works if there is another statement here...
+```
 
-### Function Declarations
+Instead...
 
-* functions definitions take blocks and wrap them with a function spec and defer their execution
+```C++
+// search for first occurence of value in row-major 2D array
+int found_row, found_col;
+found: for (int row = 0; row < 10; row++) {
+    for (int col = 0; col< 10; col++) {
+        if (array[row][col] == value) {
+            found_row = row;
+            found_col = col;
+            break found;  // multi-level loop break
+        }
+    }
+}
+```
 
-### Composite Type Declarations
+### Cleanup or Error Handling at End of a Block
 
-* use executable block final variable declarations for fields
+A common idiom in C where RAII, context managers, `defer`, or `exception` and `finally` statements are not available.
+A typical example might look like...
 
-### Structure Type Declaration
+```C
+int big_function()
+{
+    int ret_val = [success];
+    /* do some work */
+    if([error])
+    {
+        ret_val = [error];
+        goto end;
+    }
+    /* do some more work */
+    if([error])
+    {
+        ret_val = [error];
+        goto end;
+    }
+    /* do some more work */
+    SomeType value;          // WHOOPS... need additional variable here,
+    if([error])              // jumped over variable declaration,
+    {                        // move the variable decl to top of function
+        ret_val = [error];
+        goto end;
+    }
+    /* do some more work */
+    if([error])
+    {
+        ret_val = [error];
+        goto end;
+    }
+end:
+    /* clean up*/
+    return ret_val;
+}
+```
 
-* function variables declared in the block could be used to describe the structural type's interface
+Instead, RAII, context managers, `defer`, `exception`/`finally` could be used (I'll let the reader imagine that), or labeled `break` on blocks could as well...
 
-### Concept Declarations
+```C
+int big_function()
+{
+    int ret_val = [success];
+    work: {
+        /* do some work */
+        if([error])
+        {
+            ret_val = [error];
+            break work;
+        }
+        /* do some more work */
+        if([error])
+        {
+            ret_val = [error];
+            break work;
+        }
+        /* do some more work */
+        SomeType value;         // this is fine
+        if([error])
+        {
+            ret_val = [error];
+            break work;
+        }
+        /* do some more work */
+        if([error])
+        {
+            ret_val = [error];
+            break work;
+        }
+    }
+    /* clean up*/
+    return ret_val;
+}
+```
 
-* concepts are boolean metafunctions that returns true if a type implements the concept
+### Algorithmic Logic
 
-## Syntax For Blocks
+In this example, we are using a `goto` to skip over unnecessary computations by stating "what's next".
+Instead, we should state "which sub-computation we are exiting early", as that proposition is far less fragile.
 
-There are a few different syntaxes for Block-delination in modern programming languages.
-Sometimes languages have equivalent syntax, but the exact spelling is a bit different.
-Lets look at a few languages/family of languages:
+```C
+// Overwrite an element with same hash key if it exists
+for (add_index=0; add_index < ELEMENTS_PER_BUCKET; add_index++)
+  if (slot_p[add_index].hash_key == hash_key)
+    goto add;
 
-### Python
+// Otherwise, find first empty element
+for (add_index=0; add_index < ELEMENTS_PER_BUCKET; add_index++)
+  if (slot_p[add_index].type == TT_ELEMENT_EMPTY)
+    goto add;
 
-Python (and a few other less popular languages) use significant indentation to represent new blocks.
-In Python, blocks are only ever accompanied by block operators.
+// Additional passes go here...
 
-An advantage is that blocks are very clear to visualize and there is less syntactic "noise" by removing the need to end the block explicitly.
-A clear disadvantage with the way Python does this is it makes using blocks in expressions impossible.
-This is clearly acknowledged by the fact that Python has a separate syntax for anonymous functions and they are single expression only.
-This is *necessary* to decide when the end of the function defintions occurs and the rest of the arguments start.
+int value = 0;  // WHOOPS... need additional variable here,
+                // jumped over variable declaration
 
-### The C and Pascal Family
+add:
+// element is written to the hash table here
+```
 
-This includes C, C++, Java, C#, Javascript, Rust, Pascal, and so many more languages.
-In C-like languages, blocks are usually started with the right-facing curly bracket `{` and end with the left-facing curly bracket `}`.
-Pascal is very similar, but the block beginning and end are call `begin` and `end`, respectively.
-Most of the languages in these family support creating blocks arbitrary, and not just in conjunction with some other syntactic element.
+Instead it could look like...
 
-The benefit of this syntax is that it is unambiguous when the block has ended.
-This is important if blocks are to be used in greater expressions.
-For example, in C++, one can write multi-line lambda functions *inline* with the expression in which they are to be used (such as being passed to a map, filter, or reduce algorithm).
-The clear block end is important to distinguish between the end of the lambda body and the rest of the expression.
+```C
+logic: {
+    // Overwrite an element with same hash key if it exists
+    for (add_index=0; add_index < ELEMENTS_PER_BUCKET; add_index++) {
+      if (slot_p[add_index].hash_key == hash_key) {
+        break logic;
+      }
+    }
 
-### The Ada Variation
+    // Otherwise, find first empty element
+    for (add_index=0; add_index < ELEMENTS_PER_BUCKET; add_index++) {
+      if (slot_p[add_index].type == TT_ELEMENT_EMPTY) {
+        break logic;
+      }
+    }
 
-Ada uses the C/Pascal idiom of clear block beginning and end syntax.
-*However*, blocks cannot be created arbitrarily, but must be associated with a block operator.
-This is because Ada allows you to optionally specify which block operator and/or the name of the labeled block you are leaving when the `end` keyword is seen.
-It is an improvement upon regular C syntax, where the end of a block occurs when a closing bracket is seen "at the same level".
+    // Additional passes go here...
+    int value = 0;  // this is fine
+}
 
-Matching "stupidly" like C does can lead to poor lex error messages when there is a mismatching number of closing brackets.
-The lexer cannot decide which block is responsible for the missing bracket.
-This leads to the error typically being reported at the end of the file where the final closing brackets were not seen.
-In Ada, if the lexer sees `end procedure` when it was expecting `end if`, it can immediately error.
+// element is written to the hash table here
+```
 
-[^1]: C. Böhm and G. Jacopini. Flow diagrams, Turing machines and languages with only two formation rules. Communications of the ACM, pages 366–371, May 1966.
+## Using Blocks in Expressions
 
-[^2]: Kosaraju and Kozen have separately proven that Böhm-Jacopini is false; that multi-level breaks are necessary as well.
+As for the other problem of not being able to use blocks in expressions,
+I propose a new language construct: the expression block and the result statement.
+The expression block can be embedded in an expression, allowing statements to be written.
+The expression block is required to have a `result` statement which specifies the value to return in place of the expression block,
+similar to requiring `return` in functions.
+Like `break`, it could also allow for multi-level `result` statements,
+since the body of all lesser-nested expression blocks will be observable (though I doubt its utility).
+
+For example, let's refactor the code that finds the row and column index of a particular value from above to use the new `expr` block and `result` statement.
+
+```C++
+const int found_row, found_col = expr {
+    for (int row = 0; row < 10; row++) {
+        for (int col = 0; col< 10; col++) {
+            if (array[row][col] == value) {
+                result {row, col};
+            }
+        }
+    }
+}
+```
+
+As you can see there are immediate benefits: we can make the variables `const`.
+This feature is useful in the context of initializing immutable variables,
+initializing compile-time constants,
+or any place where only a simple expression is allowed (like member initialization lists in C++).
+
+This can currently be accomplished in C++11 using lambdas, but there is some syntatic noise associated with it.
+
+```C++
+const int found_row, found_col = [&]() {  // capture and argument list for lambda expression
+    for (int row = 0; row < 10; row++) {
+        for (int col = 0; col< 10; col++) {
+            if (array[row][col] == value) {
+                return {row, col};
+            }
+        }
+    }
+}()  // call it
+```
+
+Though I suspect that this is considered sufficient, and there no interest in new keywords.
+It's something to think about for other languages that don't support anonymous functions,
+or if anonymous functions are more syntactically noisy.
+
+[^1]: C. Böhm and G. Jacopini. [Flow diagrams, Turing machines and languages with only two formation rules](https://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.119.9119). Communications of the ACM, pages 366–371, May 1966.
+
+[^2]: Kosaraju and [Kozen](http://www.cs.cornell.edu/~kozen/Papers/BohmJacopini.pdf) have separately proven that Böhm-Jacopini is false; that multi-level breaks are necessary as well.
+
+[^3]: E. Djikstra. [Go To Statement Considered Harmful](https://web.archive.org/web/20070703050443/http://www.acm.org/classics/oct95/). Communications of the ACM, pages 147–148, March 1968.
