@@ -18,12 +18,12 @@ While the paper proved they were "sufficient"[^2], they aren't necessarily ergon
 In addition to the immense amount of focus on flow control constructs,
 structured programming also focused on a few other constructs: code "blocks", subroutines, and functions.
 
-Lets break down these elements of structured programming and see what we can learn...
+Lets break down these elements of block-structured programming and see what we can learn...
 
 ## Blocks
 
 Blocks are a sequence of statements that act as a single arbitrarily-complex statement.
-The implication of this is that variables that are defined in a block must be cleaned up after the last statement in the block is run.
+The implication of this is that variables that are defined in a block must be cleaned up after the last statement in the block is evaluated.
 Blocks can be arbitrarily nested.
 Variables defined in a block are available to nested block definitions.
 
@@ -132,41 +132,45 @@ which you see again and again in C++11 and newer code bases. Yet I have never he
 ## Goto is Evil
 
 The primary safety issue when using `goto` to jump arbitrarily through a program is jumping over or through variable declarations.
-The program may accidentally end up in a place where it is operating on variables that were never initialized, or are simply aliasing whatever is in the stack with new variables.
-You can certainly work around these issues by disallowing jumps over variable declaration,
+The program may accidentally end up in a place where it is operating on variables that were never initialized.
+You can certainly work around this issue by disallowing jumps over variable declaration,
 but that has a second-order effect of programmers pushing their variable declarations up to the top of the (sub)program to avoid the problem.
-Now they are choosing mutable, uninitialized (or arbitrarily initialized if uninitialized variables are not permissible) variables where they otherwise wouldn't.
+Now they are choosing mutable, potentially-uninitialized variables where they otherwise wouldn't.
 
-Another problem, is that `goto` allows a program to jump lexically *up* the source code,
+Another problem is that `goto` allows a program to jump lexically *up* the source code,
 creating implicit loops without it being obvious which variables are controlling the looping.
-Making it hard to reason about the current state of the program without considering many, potentially unknown, variables.
+This makes it hard to reason about the current state of the program without considering many, potentially unknown, variables.
 This seems to be the primary focus of Djikstra's article *Go To Statement Considered Harmful* [^3].
 
 Yet another problem has to do with code scalability.
 Breaking sections of code into multiple subroutines helps code scalability by allowing a programmer to encapsulate sections of their code base into subroutines to reduce the necessary working memory required for them to reason about their program.
 Subroutines also greatly improve reuse.
 Common code can be written once and run many times from many different contexts.
-Fortunately, ISA designers clued into this early only, and it never really was debated as valuable.
+Fortunately, ISA designers clued into this early only, and it never really was debated.
 
-When the programmer only has `goto`, as in assembly; compartmentalization, encapsulation, and reuse is extremely difficult without extreme principle.
+When the programmer only has `goto`, as in assembly; compartmentalization, encapsulation, and reuse is extremely difficult,
+without a principled developers.
+As most wise men will tell you,
+you shouldn't build systems that only work when people behave perfectly.
 
 ## Breaks as a Limited Goto
 
 Expanding on the observation from earlier that you can `break` out of loops, `break` out of nested loops, and `return` early from subroutines, but can't break out of anything else:
 we could expand `break` to work on any block, allowing it to act as a form of limited `goto`.
-`break` only allows jumping to just after the end of a block.
-Meaning any block-local variables in scopes that have been broken out of have been cleaned up.
-`break` also can only jump *down* the source code, making it as easy to reason about as loop `break`s or early `return`s in subroutines.
+`break` only allows jumping to just after the end of a block;
+meaning any block-local variables have been cleaned up.
+`break` also can only jump *down* the source code,
+making it no more difficult to reason about than loop `break`s or early `return`s in subroutines.
 There is no way to create implied loops with `break`.
-This makes `break` far safer than `goto`,
-while being capable enough to cover most *valid* use cases.
+This makes `break` far safer than `goto`, while being capable enough to cover most of the *valid* use cases of `goto`.
 
-To prove my point, lets dive into examples of *valid* uses of `goto` from a [StackOverflow question on that subject](https://stackoverflow.com/questions/24451/is-it-ever-advantageous-to-use-goto-in-a-language-that-supports-loops-and-func/24476#24476) and rewrite them with labeled `break`s on arbitrary blocks.
+To prove my point, let's dive into examples of *valid* uses of `goto` from a [StackOverflow question on that subject](https://stackoverflow.com/questions/24451/is-it-ever-advantageous-to-use-goto-in-a-language-that-supports-loops-and-func/24476#24476), and rewrite them with labeled `break`s on arbitrary blocks.
 
 ### Multi-level Loop Breaks
 
-Sadly, C and C++ support labels, but do not support labeled `break`s allowing to programmer to break out of multiple levels of loops at once.
-In this case, `goto` is used to act as a multi-level `break`. Obviously this is not a good reason to keep `goto` around... C and C++ could at any point add support for labeled `break` and remove the largest reason for `goto` appearing in C and C++ programs.
+Sadly, C and C++ support labels, but do not support labeled `break`s, which allow the programmer to break out of multiple levels of loops at once.
+In this case, `goto` is used to act as a multi-level `break`.
+This is not a good reason to keep `goto` around... C and C++ could at any point add support for labeled `break` and remove the largest reason for `goto` appearing in C and C++ programs.
 
 ```C++
 // search for first occurence of value in row-major 2D array
@@ -185,7 +189,7 @@ found:
 ...  // this only works if there is another statement here...
 ```
 
-Instead...
+With labeled breaks...
 
 ```C++
 // search for first occurence of value in row-major 2D array
@@ -203,7 +207,8 @@ found: for (int row = 0; row < 10; row++) {
 
 ### Cleanup or Error Handling at End of a Block
 
-A common idiom in C where RAII, context managers, `defer`, or `exception` and `finally` statements are not available.
+A common idiom in C where RAII, context managers, `defer`, or `exception` and `finally` statements are not available
+are `goto` statements which jump to the end of the function where cleanup or error handling occur.
 A typical example might look like...
 
 ```C
@@ -241,7 +246,8 @@ end:
 }
 ```
 
-Instead, RAII, context managers, `defer`, `exception`/`finally` could be used (I'll let the reader imagine that), or labeled `break` on blocks could as well...
+Instead, RAII, context managers, `defer`, `exception`/`finally` could be used (I'll leave that as an exercise for the reader),
+*or* a labeled `break` on an arbitrary block could as well.
 
 ```C
 int big_function()
@@ -284,7 +290,9 @@ int big_function()
 In this example, we are using a `goto` to skip over unnecessary computations by stating "what's next".
 Instead, we should state "which sub-computation we are exiting early", as that proposition is far less fragile.
 
-```C
+```C++
+size_t add_index;
+
 // Overwrite an element with same hash key if it exists
 for (add_index=0; add_index < ELEMENTS_PER_BUCKET; add_index++)
   if (slot_p[add_index].hash_key == hash_key)
@@ -306,19 +314,21 @@ add:
 
 Instead it could look like...
 
-```C
-logic: {
+```C++
+size_t add_index;
+
+index_logic: {
     // Overwrite an element with same hash key if it exists
     for (add_index=0; add_index < ELEMENTS_PER_BUCKET; add_index++) {
       if (slot_p[add_index].hash_key == hash_key) {
-        break logic;
+        break index_logic;
       }
     }
 
     // Otherwise, find first empty element
     for (add_index=0; add_index < ELEMENTS_PER_BUCKET; add_index++) {
       if (slot_p[add_index].type == TT_ELEMENT_EMPTY) {
-        break logic;
+        break index_logic;
       }
     }
 
@@ -355,7 +365,7 @@ const int found_row, found_col = expr {
 
 As you can see there are immediate benefits: we can make the variables `const`.
 This feature is useful in the context of initializing immutable variables,
-initializing compile-time constants,
+computing compile-time constants,
 or any place where only a simple expression is allowed (like member initialization lists in C++).
 
 This can currently be accomplished in C++11 using lambdas, but there is some syntatic noise associated with it.
@@ -372,7 +382,7 @@ const int found_row, found_col = [&]() {  // capture and argument list for lambd
 }()  // call it
 ```
 
-Though I suspect that this is considered sufficient, and there no interest in new keywords.
+Though I suspect that this is considered sufficient and there no interest in new keywords in C++.
 It's something to think about for other languages that don't support anonymous functions,
 or if anonymous functions are more syntactically noisy.
 
