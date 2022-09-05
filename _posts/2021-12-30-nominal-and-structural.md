@@ -10,7 +10,7 @@ A type-value is bound to a name, or potentially many names (even C has typedef).
 So at best, the name "nominal" is a misnomer (heh).
 But the important aspect of the term is that types *explicitly* subtype or supertype other types with declarations.
 
-Structural type system are type systems where subtypes occur by implicitly, declarations are not needed, subtypedness is checked ad-hoc.
+In many structural type subtypes occur implicitly, explicit declaration is not needed, subtypedness is checked ad-hoc.
 And the "structural" name comes from the fact that only the structural aspect of the type is considered for subtypedness.
 Types being both a set of behaviors and a set of values (read Stepanov and Liskov), a structural-matching system is a partial type system.
 
