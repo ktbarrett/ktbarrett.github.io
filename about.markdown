@@ -11,11 +11,12 @@ In lieu of that, I'll state some facts about myself.
 * I was born in 1994.
 * I grew up in middle-of-nowhere Maryland.
 * I graduated with a BSEE from Temple University in 2017.
-* I work at Raytheon Missiles and Defense as an FPGA Engineer.
-* I have two rabbits, two rats, and a dog as pets; and I love them quite a bit.
-* I enjoy hiking and target shooting on weekends.
-* I drink a lot of beer.
+* I've worked with FPGAs professionally, either as a designer, verifier, or both, since 2018.
+* I have two rabbits and a dog; and I love them quite a bit.
+* I live in Colorado.
+* I enjoy hiking on weekends.
+* I like good food and cocktails, both home-made or otherwise.
 * I help maintain the [cocotb](https://github.com/cocotb/cocotb) project.
 
 I will probably be mostly posting about programming-related topics.
-There will be rants, raves, complaints, solutions, wild ideas, and probably me flamming myself in the comments.
+There will be rants, raves, complaints, solutions, wild ideas and lots of mispelled words and bad grammar.
