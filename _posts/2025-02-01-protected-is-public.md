@@ -43,7 +43,7 @@ I don't get how this is an argument.
 Unless you want to complain that all use of public API creates coupling.
 You'd be correct, it does, but that's an inevitability.
 
-### Consequence
+### Conclusion
 
 Most programmers understand that carefully designing a public API is important.
 You are going to have to live with it for a very long time.
