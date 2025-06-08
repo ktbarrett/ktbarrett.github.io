@@ -15,7 +15,7 @@ But it was not dead yet...
 
 In late 2018 the project was taken over by FOSSi, under the stead of Philipp Wagner.
 He added the first new maintainers: Tomasz Hemperek, Colin Marquardt, and Eric Weiser.
-Finally adding me and Marlin James in 2019 and 2020, respectively.
+Finally adding me and Marlon James in 2019 and 2020, respectively.
 Since then, the cocotb maintainers have done 9 major releases in 7 years, with a tenth (2.0) looming.
 
 The new ownership brought a new development/maintenance system: the shared maintainer model,
@@ -41,13 +41,9 @@ But now the future looks bright. Well, almost...
 
 ## The Future Of cocotb
 
-If you asked me "Is cocotb the future?"
+If you asked me "Is cocotb the future?" I'd say "No. cocotb is ***now***".
 
-I'd say "No. cocotb is ***now***".
-
-"But will cocotb also be the future, say, 10 years from now?"
-
-"Almost certainly not in its current form."
+"But will cocotb also be the future, say, 10 years from now?" "Almost certainly not in its current form."
 
 It already fails to do what many users need it to do.
 People need performance and that comes in the form of moving more into the simulator with DPI and RTL Drivers and Monitors.
@@ -60,12 +56,14 @@ And cocotb is not "developing" any more.
 cocotb will someday die, but it will live on, and not just in memory, if it's up to me.
 This will be accomplished by making the cocotb codebase more extensible and modular.
 
+## Against Prevailing Sentiments
+
 EDA tooling hasn't quite escaped the monolithic design style that is often valuable in commercial tools
 ("please become dependent on our walled garden!").
 Even some FOSS EDA tools fail to escape that mental box.
 But open source __software__ hasn't operated in that way in decades.
 
-Modern software is built to do one thing and do it well.
+Modern open source software is built to do one thing and do it well.
 And it does this by reusing and extending existing libraries.
 Tools fall out of favor,
 but the useful pieces will live on and mature.
@@ -94,8 +92,8 @@ All while letting the cocotb repo do what it should be doing and maturing.
 
 Of course I will need to do changes to cocotb still, but I will do so even more judiciously than I already have been.
 My current modus operandi has been to focus on refactors, bugs fixes, and new features to create improvements over existing functionality.
-But I will no longer focus on working developing new features in the cocotb repo;
-that will be reserved for coconext.
-The majority of my work going forward will be the necessary changes to cocotb to support features in coconext,
+But I will no longer focus on developing new features in the cocotb repo;
+that will be reserved for `coconext`.
+The majority of my work going forward will be the necessary changes to cocotb to support features in `coconext`,
 as well as refactoring changes to make cocotb more extensible and modular
 (plus the obvious bugfixes, documentation improvements, etc.).
